@@ -9,34 +9,39 @@ from langchain.vectorstores.pgvector import PGVector
 import openai
 from langchain_openai import ChatOpenAI
 from langchain.chains import RetrievalQA,RetrievalQAWithSourcesChain
-load_dotenv()
-openai.api_key=os.getenv('OPENAI_API_KEY')
 
-#  Load
+def process_text():
+    try:
+        load_dotenv()
+        openai.api_key = os.getenv('OPENAI_API_KEY')
 
-loader=TextLoader('msd.txt',encoding='utf-8')
-documents=loader.load()
-#print(documents)
-print(len(documents))
+        # Load
+        loader = TextLoader('msd.txt', encoding='utf-8')
+        documents = loader.load()
+        print(len(documents))
 
-# Split
+        # Split
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=80)
+        texts = text_splitter.split_documents(documents)
+        print(len(texts))
 
-text_splitter=RecursiveCharacterTextSplitter(chunk_size=1000,chunk_overlap=80)
-texts=text_splitter.split_documents(documents)
-print(len(texts))
+        # Embedding
+        embeddings = OpenAIEmbeddings()
 
-# Embedding
+        CONNECTION_STRING = os.getenv('DATABASE_URL')
+        COLLECTION_NAME = 'state_of_union_vectors'
 
-embeddings=OpenAIEmbeddings()
+        # PG Vector
+        db = PGVector.from_documents(
+            embedding=embeddings,
+            documents=texts,
+            collection_name=COLLECTION_NAME,
+            connection_string=CONNECTION_STRING,
+        )
+        print("Embedded successfully")
 
-CONNECTION_STRING = "postgresql://postgres:nathan7845@localhost:5432/nathan"
-COLLECTION_NAME = 'state_of_union_vectors'
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
 
-# PG Vector 
-
-db = PGVector.from_documents(
-    embedding=embeddings,
-    documents=texts,
-    collection_name=COLLECTION_NAME,
-    connection_string=CONNECTION_STRING,
-)
+# Call the function
+process_text()
